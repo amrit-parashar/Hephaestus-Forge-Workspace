@@ -1,0 +1,246 @@
+:root {
+    --bg-dark: #0b0c10;
+    --accent-gold: #f5c26b;
+    --glass: rgba(26, 26, 28, 0.6);
+}
+
+body {
+    margin: 0;
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden; /* Prevent scrolling the whole page */
+}
+
+/* Navigation Bar Styling */
+.forge-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    display: flex;
+    justify-content: space-between; /* Spaced out sections */
+    align-items: center;
+    padding: 0 30px;
+    background: rgba(26, 26, 28, 0.7); /* Translucent obsidian */
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(245, 194, 107, 0.2); /* Gold trim */
+    z-index: 1000;
+}
+
+/* Logo Section (Top Left) */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Cinzel', serif; /* Use your branding font */
+    font-size: 1.2rem;
+    color: var(--accent-gold);
+}
+
+.logo i {
+    width: 24px;
+    color: var(--accent-orange);
+}
+
+/* Centered Project Title */
+.project-title {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 15px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    transition: 0.3s;
+    cursor: text;
+}
+
+.project-title:hover, .project-title:focus {
+    border-color: var(--accent-gold);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    outline: none;
+}
+
+/* User Profile (Top Right) */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#user-display-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-gold);
+}
+
+.btn-icon {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.3s;
+}
+
+.btn-icon:hover {
+    background: rgba(244, 106, 60, 0.2);
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
+}
+
+/* Glassmorphism Sidebar */
+.toolbar {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    z-index: 100;
+}
+
+.tool-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: 0.3s;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.tool-btn:hover, .tool-btn.active {
+    color: var(--accent-gold);
+    background: rgba(245, 194, 107, 0.1);
+}
+
+/* Canvas Area with Dot Grid */
+.canvas-area {
+    width: 100vw;
+    height: 100vh;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px; /* Adjust grid size */
+}
+
+#main-canvas {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    cursor:crosshair;
+    background-color:transparent;
+}
+
+.sub-menu {
+    position: absolute;
+    left: 70px; /* Pops out to the right of the main toolbar */
+    background: var(--glass);
+    padding: 5px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.danger:hover {
+    color: #ff4d4d !important;
+    background: rgba(255, 77, 77, 0.1) !important;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.settings-panel {
+    position: absolute;
+    left: 70px; /* Offset to the right of the toolbar */
+    top: 0;
+    background: var(--glass);
+    backdrop-filter: blur(15px);
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(245, 194, 107, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 150px;
+    z-index: 101;
+    transition: opacity 0.2s ease;
+}
+.hidden {
+    display: none !important;
+    opacity: 0;
+}
+.setting-group label {
+    display: block;
+    font-size: 0.7rem;
+    margin-bottom: 5px;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#size-slider {
+    width: 100%;
+    accent-color: var(--accent-gold);
+    cursor: pointer;
+}
+
+.color-palette {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.color-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+}
+
+.color-swatch.active {
+    border-color: white;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.shape-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.shape-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.shape-btn.active {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    background: rgba(245, 194, 107, 0.1);
+}

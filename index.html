@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HPW - Hephaestus' Forge Workspace</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    
+
+    <main class="main-container">
+        <section class="hero-split">
+            <div class="hero-left">
+                <h1 class="brand-title">Hephaestus'<br><span class="orange-text">Forge<br>Workspace</span></h1>
+                <p class="tagline">Craft. Collaborate. Create. The divine space for modern builders.</p>
+                <button class="btn-primary">Enter the Forge</button><br>
+                
+                <div class="mini-features">
+                    <span><i data-lucide="hammer"></i> Drawing Tools</span>
+                    <span><i data-lucide="users"></i> Collaboration</span>
+                    <span><i data-lucide="zap"></i> Real-time Sync</span>
+                </div>
+            </div>
+
+            <div class="hero-right">
+                <div class="auth-card">
+                    <div class="auth-tabs">
+                        <button class="tab active" onclick="toggleForm('login')">Login</button>
+                        <button class="tab" onclick="toggleForm('signup')">Sign Up</button>
+                    </div>
+                    <form id="login-form">
+                        <div class="input-field">
+                            <label>Email Address</label>
+                            <input type="email" placeholder="hercules@olympus.com">
+                        </div>
+                        <div class="input-field">
+                            <label>Password</label>
+                            <input type="password" placeholder="••••••••">
+                        </div>
+                        <button type="submit" id="login-btn" class="btn-unlock">
+                            <span class="btn-text">Unlock</span>
+                            <i data-lucide="Loader" class="spinner hidden"></i>
+                        </button>
+                    </form>
+
+                    <form id="signup-form" class="hidden">
+                        <div class="input-row">
+                            <div class="input-field">
+                                <label>Full Name</label>
+                                <input type="text" placeholder="Icarus Daedalus">
+                            </div>
+                        </div>
+
+                        <div class="input-field">
+                            <label>Email Address</label>
+                            <input type="email" placeholder="hercules@olympus.com">
+                        </div>
+
+                        <div class="input-row split">
+                            <div class="input-field">
+                                <label>Password</label>
+                                <input type="password" placeholder="••••••••">
+                            </div>
+                            <div class="input-field">
+                                <label>Confirm Password</label>
+                                <input type="password" placeholder="••••••••">
+                            </div>
+                        </div>
+
+                        <div class="terms-container">
+                            <input type="checkbox" id="terms">
+                            <label for="terms">I agree to the Forge's Laws & Privacy</label>
+                        </div>
+
+                        <button class="btn-unlock">Create Account</button>
+                    </form>
+                    
+                </div>
+            </div>
+        </section>
+
+        <section class="features-row">
+            <h2 class="section-title">Forge Features</h2>
+            <div class="grid-container">
+                <div class="feature-card">
+                    <div class="icon-wrapper"><i data-lucide="hammer"></i></div>
+                    <h3>Text & Shapes</h3>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrapper"><i data-lucide="layers"></i></div>
+                    <h3>Layers & Pages</h3>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrapper"><i data-lucide="image-plus"></i></div>
+                    <h3>Image Import</h3>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+    
+</body>
+</html>

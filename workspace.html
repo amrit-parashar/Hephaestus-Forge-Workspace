@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge Workspace | Hephaestus</title>
+    <link rel="stylesheet" href="workspace.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="forge-nav">
+        <div class="logo">
+            <i data-lucide="Brush"></i> <span>THE FORGE</span>
+        </div>
+        <div class="project-title" contenteditable="true" title="Click to rename">Untitled Blueprint</div>
+        <div class="user-profile">
+            <span id="user-display-name">Builder</span>
+            <button id="logout-btn" class="btn-icon"><i data-lucide="log-out"></i></button>
+        </div>
+    </nav>
+
+    <div class="workspace-container">
+        <aside class="toolbar">
+            <button class="tool-btn active" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+            <button class="tool-btn" title="Pencil"><i data-lucide="pencil"></i></button>
+            <button class="tool-btn" title="Eraser"><i data-lucide="eraser"></i></button>
+            <div id="eraser-options" class="sub-menu-hidden">
+                <button class="tool-btn danger" title="Clear All" id="clear-all-btn">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            </div>
+            <div class="settings-panel hidden" id="tool-settings-panel">
+                <div class="setting-group">
+                    <label> Size</label>
+                    <input type="range" id="size-slider" min="1" max="50" value="3">
+                </div>
+
+                <div class="setting-group">
+                    <label>Colors</label>
+                    <div class="color-palette">
+                        <div class="color-swatch active" style="background: #f5c26b;" data-color="#f5c26b" title="Sunlit Gold"></div>
+                        <div class="color-swatch" style="background: #f46a3c;" data-color="#f46a3c" title="Ember Orange"></div>
+                        <div class="color-swatch" style="background: #ffffff;" data-color="#ffffff" title="Pure Light"></div>
+                        <div class="color-swatch" style="background: #4ecdc4;" data-color="#4ecdc4" title="Celestial Teal"></div>
+                    </div>
+                </div> 
+                <div class="setting-group hidden" id="shape-selector-group">
+                    <label>Shape Type</label>
+                    <div class="shape-options">
+                        <button class="shape-btn active" data-shape="rect" title="Rectangle"><i data-lucide="square"></i></button>
+                        <button class="shape-btn" data-shape="line" title="Line"><i data-lucide="minus"></i></button>
+                        <button class="shape-btn" data-shape="arrow" title="Arrow"><i data-lucide="move-up-right"></i></button>
+                        <button class="shape-btn" data-shape="circle" title="Circle"><i data-lucide="circle"></i></button>
+                    </div>
+                </div>               
+            </div>
+    
+            <button class="tool-btn" title="Shapes"><i data-lucide="square"></i></button>
+            
+
+            <button class="tool-btn" title="Text" id="text-tool"><i data-lucide="type"></i></button>
+            
+            <button class="tool-btn" title="Upload Image"><i data-lucide="image-plus"></i></button>
+            <button class="tool-btn" title="Layers"><i data-lucide="layers"></i></button>
+        </aside>
+
+        <main class="canvas-area">
+            <canvas id="main-canvas"></canvas>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="workspace.js"></script>
+</body>
+</html>

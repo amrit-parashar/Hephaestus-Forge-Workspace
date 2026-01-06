@@ -7,7 +7,10 @@ const ctx = canvas.getContext('2d');
 const toolButtons = document.querySelectorAll('.tool-btn');
 const eraserOptions = document.getElementById('eraser-options');
 const clearAllBtn = document.getElementById('clear-all-btn');
+const navDownloadBtn = document.getElementById('nav-download-btn');
+const projectTitle = document.querySelector('.project-title');
 
+let currentProjectId = null;
 let isDrawing = false;
 let currentTool = 'pencil'; 
 let lastX = 0;
@@ -20,12 +23,64 @@ let shapes = []; // Stores objects like { type: 'rect', x: 10, y: 10, w: 50, h: 
 let selectedObjectIndex = null;
 let isDraggingObject = false;
 let dragOffX, dragOffY;
+let idleTimer;
+const IDLE_LIMIT = 15 * 60 * 1000;
+let collabChannel = null;
+let remoteCursors = {}; // Stores x, y, and color for other users
+let currentUserEmail=null;
+
 const sizeSlider = document.getElementById('size-slider');
 const swatches = document.querySelectorAll('.color-swatch');
 const settingsPanel = document.getElementById('tool-settings-panel');
 const shapeSelectorGroup = document.getElementById('shape-selector-group');
 const uploadBtn = document.getElementById('upload-btn');
 const imageInput = document.getElementById('image-input');
+const navNewBtn = document.getElementById('nav-new-btn');
+document.getElementById('undo-btn').addEventListener('click', undo);
+document.getElementById('redo-btn').addEventListener('click', redo);
+
+
+// Check for active session on page load
+async function checkUserSession() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    
+    if (!session) {
+        currentUserEmail = session.user.email;
+        // No user logged in? Send them back to the start
+        window.location.href = 'index.html';
+    } else {
+        // Set the display name in the navbar
+        const userNameSpan = document.getElementById('user-display-name');
+        if (userNameSpan) {
+            userNameSpan.innerText = session.user.email.split('@')[0];
+        }
+    }
+}
+
+checkUserSession();
+
+async function autoSaveAndLogout() {
+    console.log("User idle. Forcing auto-save before logout...");
+    
+    // 1. Show a notification (optional)
+    alert("Session expiring due to inactivity. Saving your forge...");
+
+    // 2. Trigger the cloud save
+    try {
+        await saveForgeToCloud();
+    } catch (err) {
+        console.error("Auto-save failed:", err);
+    }
+
+    // 3. Clear session and redirect
+    await supabaseClient.auth.signOut();
+    window.location.href = 'index.html';
+}
+
+function resetIdleTimer() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(autoSaveAndLogout, IDLE_LIMIT);
+}
 
 
 // 1. Initialize Canvas Settings
@@ -177,7 +232,7 @@ function startDrawing(e) {
                 isDraggingObject = true;
                 dragOffX = mouseX - s.x; // Calculate offset to prevent "snapping"
                 dragOffY = mouseY - s.y;
-                let hitFound = true;
+                hitFound = true;
                 return;
             }
         }
@@ -202,6 +257,7 @@ function startDrawing(e) {
     settingsPanel.classList.add('hidden');
 
     if (currentTool === 'pencil') {
+        saveState();
         shapes.push({
             type: 'path',
             points: [{ x: mouseX, y: mouseY }],
@@ -337,7 +393,7 @@ function redrawCanvas() {
         } else if (s.type === 'arrow') {
             drawArrow(ctx, s.x, s.y, s.x + s.w, s.y + s.h);
         }
-        // ... add cases for circles, lines, and images ...
+        drawRemoteCursors();
 
         // Draw a selection highlight
         if (index === selectedObjectIndex) {
@@ -361,12 +417,13 @@ clearAllBtn.addEventListener('click', (e) => {
 });
 
 // Ensure 'e' is passed as a parameter to get the final mouse position
-function stopDrawing(e) {
+async function stopDrawing(e) {
     if (isDrawing && currentTool === 'shapes') {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-
+        const lastShape=shapes[shapes.length - 1];
+        saveState();
         // Commit the shape to memory
         shapes.push({
             type: selectedShape,
@@ -377,9 +434,28 @@ function stopDrawing(e) {
             color: currentColor,
             size: currentSize
         });
-        
+        saveForgeToCloud(true) 
+        if(currentProjectId){
+            supabaseClient.rpc('append_shape', {
+                project_id: currentProjectId,
+                new_shape: lastShape 
+            });
+
+            if (collabChannel) {
+                collabChannel.send({
+                    type: 'broadcast',
+                    event: 'new_shape',
+                    payload: { shape: lastShape }
+            });
+            // true = silent auto-save
+            }
+        }
         // Final redraw to clear the "preview" and draw the stored objects
         redrawCanvas();
+        
+    }
+    if (isDrawing && currentTool === 'pencil') {
+        if (currentProjectId) saveForgeToCloud(true);
     }
     
     isDrawing = false;
@@ -483,10 +559,59 @@ function makeElementDraggable(elmnt, handle) {
         document.onmousemove = null;
     }
 }
+
+function copyShareLink() {
+    const urlInput = document.getElementById('share-url');
+    urlInput.select();
+    document.execCommand('copy');
+
+    // Visual feedback
+    const copyBtn = document.querySelector('.link-box button');
+    const originalText = copyBtn.innerText;
+    copyBtn.innerText = "Copied!";
+    copyBtn.style.background = "#ffffff";
+
+    setTimeout(() => {
+        copyBtn.innerText = originalText;
+        copyBtn.style.background = "#f5c26b";
+    }, 2000);
+}
+
+async function checkUrlForSharedProject() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedId = urlParams.get('id');
+
+    if (sharedId) {
+        const { data, error } = await supabaseClient
+            .from('blueprints')
+            .select('*')
+            .eq('id', sharedId)
+            .single();
+
+        if (data) {
+            // Load the board and start collaboration
+            currentProjectId = data.id;
+            loadProject(data); 
+            initializeCollaboration(data.id); 
+        } else {
+            console.error("Could not find or access this shared board.");
+        }
+    }
+}
+checkUrlForSharedProject();
 // Listen for Delete or Backspace keys
 window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        undo();
+    }
+    if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        redo();
+    }
     // Check if an object is selected and the key is Delete or Backspace
     if (selectedObjectIndex !== null && (e.key === 'Delete' || e.key === 'Backspace')) {
+        saveState();
         
         // Prevent backspace from navigating the browser back
         e.preventDefault();
@@ -507,8 +632,7 @@ window.addEventListener('keydown', (e) => {
 
 
 // Example: Attach to a button with id 'download-btn'
-const navDownloadBtn = document.getElementById('nav-download-btn');
-const projectTitle = document.querySelector('.project-title');
+
 navDownloadBtn.addEventListener('click', () => {
     // 1. Hide selection highlight so it's not in the export
     const tempSelection = selectedObjectIndex;
@@ -531,54 +655,397 @@ navDownloadBtn.addEventListener('click', () => {
     redrawCanvas();
 });
 
-async function saveForgeToCloud() {
+async function saveForgeToCloud(isAutoSave=false) {
     const fileName = projectTitle.innerText.trim() || "Untitled Blueprint";
     
     // Get the current user session
     const { data: { user } } = await supabaseClient.auth.getUser();
 
     if (!user) {
-        alert("You must be logged in to save to the cloud!");
+        if(!isAutoSave)alert("You must be logged in to save to the cloud!");
         return;
+    }
+    const savePayload = { 
+        title: fileName, 
+        data: { 
+            shapes: shapes,
+            stickies: Array.from(document.querySelectorAll('.sticky-note')).map(s => ({
+                text: s.querySelector('textarea').value,
+                x: s.style.left,
+                y: s.style.top,
+                color: s.style.backgroundColor
+            }))
+        },
+        
+    };
+    let result;
+    if (currentProjectId) {
+        result = await supabaseClient
+            .from('blueprints')
+            .update(savePayload)
+            .eq('id', currentProjectId)
+            .select();
+    }else {
+        // Only insert a brand new record if there is no current project
+        savePayload.user_id = user.id; // Only attach owner ID on creation
+        result = await supabaseClient
+            .from('blueprints')
+            .insert([savePayload])
+            .select();
     }
 
     const { data, error } = await supabaseClient
         .from('blueprints')
-        .upsert({ 
-            title: fileName, 
-            data: { 
-                shapes: shapes,
-                // We convert sticky notes to a simple array of objects
-                stickies: Array.from(document.querySelectorAll('.sticky-note')).map(s => ({
-                    text: s.querySelector('textarea').value,
-                    x: s.style.left,
-                    y: s.style.top,
-                    color: s.style.backgroundColor
-                }))
-            },
-            user_id: user.id 
-        }, { onConflict: 'title, user_id' }); // Overwrites if the title exists for this user
+        .upsert(savePayload)
+        .select(); 
 
-    if (error) {
+    if (result.error) {
         console.error("Save Error:", error.message);
         alert("Error saving to cloud: " + error.message);
     } else {
-        alert("Blueprint forged successfully in the cloud!");
+        if (result.data && result.data.length > 0) {
+            currentProjectId = result.data[0].id;
+        }
+        if(!isAutoSave)alert("Blueprint forged successfully in the cloud!");
     }
 }
 const navSaveBtn = document.getElementById('nav-save-btn');
 
 navSaveBtn.addEventListener('click', saveForgeToCloud);
 
-// Refresh icons so the cloud-upload shows up
+const loadModal = document.getElementById('load-modal');
+const blueprintList = document.getElementById('blueprint-list');
+
+// 1. Fetch and Display Blueprints
+async function openLoadMenu() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return alert("Please log in to see your blueprints.");
+
+    // Fetch titles and data from Supabase
+    const { data, error } = await supabaseClient
+        .from('blueprints')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+    if (error) return console.error(error);
+
+    // Build the UI list
+    blueprintList.innerHTML = data.length === 0 ? '<p>No saved blueprints found.</p>' : '';
+    data.forEach(project => {
+        const card = document.createElement('div');
+        card.className = 'blueprint-card';
+        card.innerHTML = `
+        <div class="card-content">
+            <h4>${project.title}</h4>
+            <span>Saved on: ${new Date(project.created_at).toLocaleDateString()}</span>
+        </div>
+        <button class="delete-project-btn" title="Delete Blueprint">
+            <i data-lucide="trash-2"></i>
+        </button>
+        `;
+        card.onclick = () => loadProject(project);
+
+        const deleteBtn = card.querySelector('.delete-project-btn');
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation(); // Prevents loading the project
+            deleteBlueprint(project.id, project.title);
+        };
+        blueprintList.appendChild(card);
+    });
+
+    loadModal.classList.remove('hidden');
+    if(typeof lucide !== 'undefined')
+        lucide.createIcons();
+}
+
+// 2. Reconstruct the Project
+async function loadProject(project) {
+    if (!confirm(`Load "${project.title}"? Unsaved changes will be lost.`)) return;
+
+    currentProjectId = project.id;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const isOwner = session && session.user.id === project.user_id;
+    const canEdit = isOwner || (project.visibility === 'link' && project.public_access_level === 'edit');
+
+    if (!canEdit) {
+        // Hide drawing tools for view-only guests
+        document.querySelector('.toolbar').style.display = 'none';
+        canvas.style.pointerEvents = 'none';
+        alert("Entering View-Only mode.");
+    } else {
+        document.querySelector('.toolbar').style.display = 'flex';
+        canvas.style.pointerEvents = 'auto';
+    }
+    // Clear everything first
+    shapes = [];
+    document.querySelectorAll('.sticky-note').forEach(n => n.remove());
+    projectTitle.innerText = project.title;
+
+    // Restore Shapes
+    shapes = project.data.shapes || [];
+
+    // Restore Sticky Notes
+    if (project.data.stickies) {
+        project.data.stickies.forEach(s => {
+            currentStickyColor = s.color;
+            createStickyNote(parseInt(s.x), parseInt(s.y));
+            // Set the text after creation
+            const latestSticky = document.querySelector('.sticky-note:last-child textarea');
+            if (latestSticky) latestSticky.value = s.text;
+        });
+    }
+
+    redrawCanvas();
+    loadModal.classList.add('hidden'); // If you have the layers feature implemented
+}
+
+async function deleteBlueprint(id, title) {
+    if (!confirm(`Are you sure you want to destroy the blueprint for "${title}"? This cannot be undone.`)) return;
+
+    const { error } = await supabaseClient
+        .from('blueprints')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        alert("Error deleting: " + error.message);
+    } else {
+        // Refresh the menu to show it's gone
+        openLoadMenu();
+    }
+}
+
+let undoStack = [];
+let redoStack = [];
+
+// Save the current state before an action happens
+function saveState() {
+    // We save a deep copy of the shapes array so changes don't affect old snapshots
+    // Since images are objects, we map them carefully
+    const state = JSON.parse(JSON.stringify(shapes.map(s => {
+        if (s.type === 'image') {
+            // We don't stringify the imgElement (it would break), 
+            // the redrawCanvas uses the original image object logic
+            return { ...s, imgElement: s.imgElement };
+        }
+        return s;
+    })));
+    
+    undoStack.push(state);
+    
+    // Limit stack size to 50 to save memory
+    if (undoStack.length > 50) undoStack.shift();
+    
+    // Whenever a new action is performed, clear the redo stack
+    redoStack = [];
+}
+
+function undo() {
+    if (undoStack.length === 0) return;
+
+    // Save the current state to Redo before going back
+    redoStack.push(JSON.parse(JSON.stringify(shapes)));
+    
+    // Restore the previous state
+    shapes = undoStack.pop();
+    selectedObjectIndex = null;
+    redrawCanvas();
+}
+
+function redo() {
+    if (redoStack.length === 0) return;
+
+    // Save current state to Undo before moving forward
+    undoStack.push(JSON.parse(JSON.stringify(shapes)));
+    
+    // Restore the next state
+    shapes = redoStack.pop();
+    selectedObjectIndex = null;
+    redrawCanvas();
+}
+
+async function handleLogout() {
+    // 1. Confirm with the user so they don't lose unsaved work
+    const confirmLogout = confirm("Are you sure you want to leave the Forge? Any unsaved changes will be lost.");
+    
+    if (confirmLogout) {
+        const { error } = await supabaseClient.auth.signOut();
+        
+        if (error) {
+            console.error("Logout Error:", error.message);
+            alert("Error logging out: " + error.message);
+        } else {
+            // 2. Redirect to your login or landing page
+            // Replace 'index.html' with your actual login page filename
+            window.location.href = 'index.html'; 
+        }
+    }
+}
+
+function initializeCollaboration(projectId) {
+    if (collabChannel) supabaseClient.removeChannel(collabChannel);
+
+    // Create a unique channel for this board
+    collabChannel = supabaseClient.channel(`room_${projectId}`, {
+        config: { broadcast: { self: false } }
+    });
+
+    // 1. Listen for mouse movements from others
+    collabChannel
+        .on('broadcast', { event: 'cursor' }, ({ payload }) => {
+            remoteCursors[payload.user] = { x: payload.x, y: payload.y, color: payload.color };
+            redrawCanvas(); // Update view
+        })
+
+        .on('broadcast', { event: 'new_shape' }, ({ payload }) => {
+            shapes.push(payload.shape);
+            redrawCanvas();
+        })
+        // 2. Listen for when someone else SAVES the board
+        .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'blueprints', 
+            filter: `id=eq.${projectId}` 
+        }, payload => {
+            // Replace local shapes with the new remote data
+            const remoteShapes = payload.new.data.shapes || [];
+            if (remoteShapes.length !== shapes.length) {
+                shapes = remoteShapes; 
+                redrawCanvas();
+            }
+            
+        })
+        .subscribe();
+}
+function drawRemoteCursors() {
+    for (const id in remoteCursors) {
+        const cursor = remoteCursors[id];
+        ctx.fillStyle = cursor.color;
+        
+        // Draw a simple circle for the cursor
+        ctx.beginPath();
+        ctx.arc(cursor.x, cursor.y, 5 / scale, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Label the cursor with the user's name
+        ctx.font = `${12 / scale}px Inter`;
+        ctx.fillText(id.split('@')[0], cursor.x + (10 / scale), cursor.y);
+    }
+}
+
+// CALL THIS INSIDE REDRAWCANVAS() AFTER DRAWING SHAPES
+
+document.getElementById('nav-load-btn').addEventListener('click', openLoadMenu);
+
+document.getElementById('close-load-modal').onclick = () => loadModal.classList.add('hidden');
+
+
+
 lucide.createIcons();
 
 // Listeners
 canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mousemove', (e) =>{ 
+    draw(e);
+    if (currentProjectId && collabChannel) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        collabChannel.send({
+            type: 'broadcast',
+            event: 'cursor',
+            payload: { 
+                user: currentUserEmail, // Get this from auth
+                x: mouseX, 
+                y: mouseY, 
+                color: currentColor 
+            }
+        });
+    
+
+    }
+
+});
+
+// Add these to the bottom of workspace.js
+const shareModal = document.getElementById('share-modal');
+const navShareBtn = document.getElementById('nav-share-btn');
+
+if (navShareBtn) {
+    navShareBtn.onclick = () => {
+        if (!currentProjectId) {
+            alert("Please save your forge to the cloud before sharing!");
+            return;
+        }
+        // Update the URL input before showing
+        document.getElementById('share-url').value = `${window.location.origin}${window.location.pathname}?id=${currentProjectId}`;
+        shareModal.classList.remove('hidden');
+    };
+}
+
+document.getElementById('close-share-modal').onclick = () => shareModal.classList.add('hidden');
+async function updatePermissions() {
+    if (!currentProjectId) return;
+    
+    const visibility = document.getElementById('share-visibility').value;
+    const access = document.getElementById('share-permission').value;
+
+    const { error } = await supabaseClient
+        .from('blueprints')
+        .update({ 
+            visibility: visibility, 
+            public_access_level: access 
+        })
+        .eq('id', currentProjectId);
+
+    if (error) console.error("Error updating permissions:", error.message);
+}
+
+// Ensure visibility and permission changes save instantly
+document.getElementById('share-visibility').onchange = updatePermissions;
+document.getElementById('share-permission').onchange = updatePermissions;
 canvas.addEventListener('mouseup', stopDrawing);
 canvas.addEventListener('mouseout', stopDrawing);
 window.addEventListener('resize', setupCanvas);
+navNewBtn.addEventListener('click', () => {
+    if (confirm("Start a new blueprint? Ensure you have saved your current work to the cloud.")) {
+        currentProjectId = null;
+        // 1. Reset the logic state
+
+        shapes = [];
+        selectedObjectIndex = null;
+        projectTitle.innerText = `Blueprint ${new Date().toLocaleTimeString()}`;
+        
+        // 2. Reset the UI
+        projectTitle.innerText = "Untitled Blueprint";
+        
+        // 3. Clear the physical canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 4. Remove all sticky notes
+        document.querySelectorAll('.sticky-note').forEach(note => note.remove());
+        redrawCanvas();
+        
+        console.log("New forge started.");
+    }
+});
+
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
+}
+
+// Monitor these events to know the user is still active
+const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+
+activityEvents.forEach(evt => {
+    window.addEventListener(evt, resetIdleTimer, true);
+});
+
+// Start the timer for the first time when the page loads
+resetIdleTimer();
 
 setupCanvas();
 lucide.createIcons();

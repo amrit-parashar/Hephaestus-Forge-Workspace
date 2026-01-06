@@ -15,15 +15,26 @@
         </div>
         <div class="project-title" contenteditable="true" title="Click to rename">Untitled Blueprint</div>
         <div class="user-profile">
+            <button id="nav-new-btn" class="btn-icon" title="New Blueprint">
+                <i data-lucide="plus-square"></i>
+            </button>
+            <button id="nav-load-btn" class="btn-icon" title="Load Blueprint" onclick="openLoadMenu()">
+                <i data-lucide="folder-open"></i>
+            </button>
             <button id="nav-save-btn" class="btn-icon" title="Save to Cloud">
                 <i data-lucide="cloud-upload"></i>
             </button>
             <button id="nav-download-btn" class="btn-icon" title="Download Blueprint">
                 <i data-lucide="download"></i>
             </button>
+
+            <button id="nav-share-btn" class="btn-icon" title="Share Blueprint">
+                <i data-lucide="share-2"></i>
+            </button>
             <span id="user-display-name">Builder</span>
             <button id="logout-btn" class="btn-icon"><i data-lucide="log-out"></i></button>
         </div>
+        
     </nav>
 
     <div class="workspace-container">
@@ -63,6 +74,12 @@
             </div>
     
             <button class="tool-btn" title="Shapes"><i data-lucide="square"></i></button>
+            <button id="undo-btn" class="tool-btn" title="Undo (Ctrl+Z)">
+                <i data-lucide="undo-2"></i>
+            </button>
+            <button id="redo-btn" class="tool-btn" title="Redo (Ctrl+Y)">
+                <i data-lucide="redo-2"></i>
+            </button>
             
 
             <button class="tool-btn" title="Sticky Note" id="sticky-tool"><i data-lucide="sticky-note"></i></button>
@@ -70,12 +87,45 @@
             
             <button class="tool-btn" title="Upload Image" id="upload-btn"><i data-lucide="image-plus"></i></button>
             <input type="file" id="image-input" accept="image/*" style="display: none;">
-            <button class="tool-btn" title="Layers"><i data-lucide="layers"></i></button>
+            
         </aside>
 
         <main class="canvas-area">
             <canvas id="main-canvas"></canvas>
+
         </main>
+    </div>
+    <div id="share-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Share Blueprint</h3>
+            <label>Who has access:</label>
+            <select id="share-visibility">
+                <option value="private">Private (Only me)</option>
+                <option value="link">Anyone with the link</option>
+            </select>
+        
+            <label>Permission:</label>
+            <select id="share-permission">
+                <option value="view">Can View</option>
+                <option value="edit">Can Edit</option>
+            </select>
+        
+            <div class="link-box">
+                <input type="text" id="share-url" readonly>
+                <button onclick="copyShareLink()">Copy Link</button>
+            </div>
+            <button id="close-share-modal">Done</button>
+        </div>
+    </div>
+    <div id="load-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i data-lucide="folder-open"></i> Load Blueprint</h3>
+                <button id="close-load-modal" class="close-btn">&times;</button>
+            </div>
+            <div id="blueprint-list" class="blueprint-grid">
+                </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

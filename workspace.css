@@ -98,12 +98,22 @@ body {
     height: 20px;
 }
 
+.workspace-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+    padding-top: 60px; /* Offset for the fixed nav */
+    box-sizing: border-box;
+}
+
 /* Glassmorphism Sidebar */
 .toolbar {
     position: fixed;
+    flex-shrink: 0;
     left: 20px;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%) scale(1) !important;
     background: var(--glass);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -112,7 +122,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    z-index: 100;
+    z-index: 10;
 }
 
 .tool-btn {
@@ -132,6 +142,11 @@ body {
 
 /* Canvas Area with Dot Grid */
 .canvas-area {
+    flex-grow:1;
+    position:absolute;
+    inset:0;
+    z-index:1;
+    overflow:hidden;
     width: 100vw;
     height: 100vh;
     background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
@@ -168,6 +183,7 @@ body {
 
 .settings-panel {
     position: absolute;
+    transform:scale(1) !important;
     left: 70px; /* Offset to the right of the toolbar */
     top: 0;
     background: var(--glass);
@@ -331,4 +347,214 @@ body {
 
 .delete-sticky:hover {
     color: #ff4d4d;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: #1a1a1a;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    border: 1px solid #f5c26b; /* Gold border */
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    font-family: 'Cinzel', serif;
+    color: #f5c26b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.modal-content select {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+    outline: none;
+}
+
+.modal-content select:hover {
+    border-color: var(--accent-gold);
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: #f46a3c; /* Ember orange on hover */
+}
+
+.blueprint-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    padding-right: 10px;
+    overflow-y: auto;
+}
+
+.blueprint-grid::-webkit-scrollbar {
+    width: 6px;
+}
+.blueprint-grid::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 10px;
+}
+
+.blueprint-card {
+    position:relative;
+    background: #2a2a2a;
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    display: flex;
+    justify-content:space-between;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.blueprint-card:hover {
+    border-color: #4ecdc4;
+    background: #2a2a2a;
+    transform: translateY(-5px);
+}
+.blueprint-card h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #fff;
+}
+
+.blueprint-card span {
+    font-size: 11px;
+    color: #666;
+}
+
+.hidden { display: none !important; }
+.delete-project-btn {
+    background: transparent;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.delete-project-btn:hover {
+    color: #f46a3c; /* Ember Orange */
+    background: rgba(244, 106, 60, 0.1);
+}
+
+.delete-project-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.link-box {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    background: rgba(0,0,0,0.2);
+    padding: 5px;
+    border-radius: 4px;
+}
+
+#share-url {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    color: #f5c26b;
+    font-size: 0.8rem;
+    outline: none;
+}
+.modal-content label {
+    display: block;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+.link-box button {
+    background: #f5c26b; /* Sunlit Gold */
+    color: #0b0c10;      /* Dark Obsidian text */
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.link-box button:hover {
+    background: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 194, 107, 0.3);
+}
+
+.link-box button:active {
+    transform: translateY(0);
+}
+
+/* --- Styled Done Button --- */
+#close-share-modal {
+    width: 100%;
+    background:  #f5c26b;
+    color: #0b0c10;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#close-share-modal:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #ffffff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
 }
